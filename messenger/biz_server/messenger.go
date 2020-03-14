@@ -20,6 +20,7 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	"github.com/BurntSushi/toml"
 	"github.com/golang/glog"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/core"
@@ -33,7 +34,7 @@ import (
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/langpack"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/messages"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/payments"
-	"github.com/nebula-chat/chatengine/messenger/biz_server/server/phone"
+	server_phone "github.com/nebula-chat/chatengine/messenger/biz_server/server/phone"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/photos"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/stickers"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/server/updates"
@@ -45,8 +46,8 @@ import (
 	"github.com/nebula-chat/chatengine/pkg/mysql_client"
 	"github.com/nebula-chat/chatengine/pkg/redis_client"
 	"github.com/nebula-chat/chatengine/pkg/util"
-	"github.com/nebula-chat/chatengine/service/auth_session/client"
-	"github.com/nebula-chat/chatengine/service/document/client"
+	auth_session_client "github.com/nebula-chat/chatengine/service/auth_session/client"
+	document_client "github.com/nebula-chat/chatengine/service/document/client"
 	"google.golang.org/grpc"
 	// "github.com/nebula-chat/chatengine/service/bots/client"
 )
@@ -140,7 +141,7 @@ func (s *messengerServer) RunLoop() {
 		mtproto.RegisterRPCLangpackServer(s2, langpack.NewLangpackServiceImpl(s.models))
 		mtproto.RegisterRPCMessagesServer(s2, messages.NewMessagesServiceImpl(s.models))
 		mtproto.RegisterRPCPaymentsServer(s2, payments.NewPaymentsServiceImpl(s.models))
-		mtproto.RegisterRPCPhoneServer(s2, phone.NewPhoneServiceImpl(s.models, Conf.RelayIp))
+		mtproto.RegisterRPCPhoneServer(s2, server_phone.NewPhoneServiceImpl(s.models, Conf.RelayIp))
 		mtproto.RegisterRPCPhotosServer(s2, photos.NewPhotosServiceImpl(s.models))
 		mtproto.RegisterRPCStickersServer(s2, stickers.NewStickersServiceImpl(s.models))
 		mtproto.RegisterRPCUpdatesServer(s2, updates.NewUpdatesServiceImpl(s.models))

@@ -1,29 +1,30 @@
-// Copyright (c) 2018-present,  NebulaChat Studio (https://nebula.chat).
-//  All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ *  Copyright (c) 2017, https://github.com/nebulaim
+ *  All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-// Author: Benqi (wubenqi@gmail.com)
-
-package phone
+package rpc
 
 import (
-    "github.com/golang/glog"
-    "golang.org/x/net/context"
-    "github.com/nebula-chat/chatengine/pkg/grpc_util"
-    "github.com/nebula-chat/chatengine/pkg/logger"
-    "github.com/nebula-chat/chatengine/mtproto"
-    "encoding/json"
+	"encoding/json"
+
+	"github.com/golang/glog"
+	"github.com/nebula-chat/chatengine/mtproto"
+	"github.com/nebula-chat/chatengine/pkg/grpc_util"
+	"github.com/nebula-chat/chatengine/pkg/logger"
+	"golang.org/x/net/context"
 )
 
 /*
@@ -58,81 +59,81 @@ import (
 */
 
 type callConfigDataJSON struct {
-    AudioFrameSize         int     `json:"audio_frame_size"`
-    JitterMinDelay20       int     `json:"jitter_min_delay_20"`
-    JitterMinDelay40       int     `json:"jitter_min_delay_40"`
-    JitterMinDelay60       int     `json:"jitter_min_delay_60"`
-    JitterMaxDelay20       int     `json:"jitter_max_delay_20"`
-    JitterMaxDelay40       int     `json:"jitter_max_delay_40"`
-    JitterMaxDelay60       int     `json:"jitter_max_delay_60"`
-    JitterMaxSlots20       int     `json:"jitter_max_slots_20"`
-    JitterMaxSlots40       int     `json:"jitter_max_slots_40"`
-    JitterMaxSlots60       int     `json:"jitter_max_slots_60"`
-    JitterLossesToReset    int     `json:"jitter_losses_to_reset"`
-    JitterResyncThreshold  float32 `json:"jitter_resync_threshold"`
-    AudioCongestionWindow  int     `json:"audio_congestion_window"`
-    AudioMaxBitrate        int     `json:"audio_max_bitrate"`
-    AudioMaxBitrateEdge    int     `json:"audio_max_bitrate_edge"`
-    AudioMaxBitrateGprs    int     `json:"audio_max_bitrate_gprs"`
-    AudioMaxBitrateSaving  int     `json:"audio_max_bitrate_saving"`
-    AudioInitBitrate       int     `json:"audio_init_bitrate"`
-    AudioInitBitrateEdge   int     `json:"audio_init_bitrate_edge"`
-    AudioInitBitrateGrps   int     `json:"audio_init_bitrate_gprs"`
-    AudioInitBitrateSaving int     `json:"audio_init_bitrate_saving"`
-    AudioBitrateStepIncr   int     `json:"audio_bitrate_step_incr"`
-    AudioBitrateStepDecr   int     `json:"audio_bitrate_step_decr"`
-    UseSystemNs            bool    `json:"use_system_ns"`
-    UseSystemAec           bool    `json:"us audioInitBitrateGrps inte_system_aec"`
+	AudioFrameSize         int     `json:"audio_frame_size"`
+	JitterMinDelay20       int     `json:"jitter_min_delay_20"`
+	JitterMinDelay40       int     `json:"jitter_min_delay_40"`
+	JitterMinDelay60       int     `json:"jitter_min_delay_60"`
+	JitterMaxDelay20       int     `json:"jitter_max_delay_20"`
+	JitterMaxDelay40       int     `json:"jitter_max_delay_40"`
+	JitterMaxDelay60       int     `json:"jitter_max_delay_60"`
+	JitterMaxSlots20       int     `json:"jitter_max_slots_20"`
+	JitterMaxSlots40       int     `json:"jitter_max_slots_40"`
+	JitterMaxSlots60       int     `json:"jitter_max_slots_60"`
+	JitterLossesToReset    int     `json:"jitter_losses_to_reset"`
+	JitterResyncThreshold  float32 `json:"jitter_resync_threshold"`
+	AudioCongestionWindow  int     `json:"audio_congestion_window"`
+	AudioMaxBitrate        int     `json:"audio_max_bitrate"`
+	AudioMaxBitrateEdge    int     `json:"audio_max_bitrate_edge"`
+	AudioMaxBitrateGprs    int     `json:"audio_max_bitrate_gprs"`
+	AudioMaxBitrateSaving  int     `json:"audio_max_bitrate_saving"`
+	AudioInitBitrate       int     `json:"audio_init_bitrate"`
+	AudioInitBitrateEdge   int     `json:"audio_init_bitrate_edge"`
+	AudioInitBitrateGrps   int     `json:"audio_init_bitrate_gprs"`
+	AudioInitBitrateSaving int     `json:"audio_init_bitrate_saving"`
+	AudioBitrateStepIncr   int     `json:"audio_bitrate_step_incr"`
+	AudioBitrateStepDecr   int     `json:"audio_bitrate_step_decr"`
+	UseSystemNs            bool    `json:"use_system_ns"`
+	UseSystemAec           bool    `json:"us audioInitBitrateGrps inte_system_aec"`
 }
 
 // TODO(@benqi): 写死配置
 func NewCallConfigDataJSON() *callConfigDataJSON {
-    return &callConfigDataJSON{
-        AudioFrameSize:         60,
-        JitterMinDelay20:       6,
-        JitterMinDelay40:       4,
-        JitterMinDelay60:       2,
-        JitterMaxDelay20:       25,
-        JitterMaxDelay40:       15,
-        JitterMaxDelay60:       10,
-        JitterMaxSlots20:       50,
-        JitterMaxSlots40:       30,
-        JitterMaxSlots60:       20,
-        JitterLossesToReset:    20,
-        JitterResyncThreshold:  0.5,
-        AudioCongestionWindow:  1024,
-        AudioMaxBitrate:        20000,
-        AudioMaxBitrateEdge:    16000,
-        AudioMaxBitrateGprs:    8000,
-        AudioMaxBitrateSaving:  8000,
-        AudioInitBitrate:       16000,
-        AudioInitBitrateEdge:   8000,
-        AudioInitBitrateGrps:   8000,
-        AudioInitBitrateSaving: 8000,
-        AudioBitrateStepIncr:   1000,
-        AudioBitrateStepDecr:   1000,
-        UseSystemNs:            true,
-        UseSystemAec:           true,
-    }
+	return &callConfigDataJSON{
+		AudioFrameSize:         60,
+		JitterMinDelay20:       6,
+		JitterMinDelay40:       4,
+		JitterMinDelay60:       2,
+		JitterMaxDelay20:       25,
+		JitterMaxDelay40:       15,
+		JitterMaxDelay60:       10,
+		JitterMaxSlots20:       50,
+		JitterMaxSlots40:       30,
+		JitterMaxSlots60:       20,
+		JitterLossesToReset:    20,
+		JitterResyncThreshold:  0.5,
+		AudioCongestionWindow:  1024,
+		AudioMaxBitrate:        20000,
+		AudioMaxBitrateEdge:    16000,
+		AudioMaxBitrateGprs:    8000,
+		AudioMaxBitrateSaving:  8000,
+		AudioInitBitrate:       16000,
+		AudioInitBitrateEdge:   8000,
+		AudioInitBitrateGrps:   8000,
+		AudioInitBitrateSaving: 8000,
+		AudioBitrateStepIncr:   1000,
+		AudioBitrateStepDecr:   1000,
+		UseSystemNs:            true,
+		UseSystemAec:           true,
+	}
 }
 
 // phone.getCallConfig#55451fa9 = DataJSON;
 func (s *PhoneServiceImpl) PhoneGetCallConfig(ctx context.Context, request *mtproto.TLPhoneGetCallConfig) (*mtproto.DataJSON, error) {
-    md := grpc_util.RpcMetadataFromIncoming(ctx)
-    glog.Infof("phone.getCallConfig#55451fa9 - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
+	md := grpc_util.RpcMetadataFromIncoming(ctx)
+	glog.Infof("phone.getCallConfig#55451fa9 - metadata: %s, request: %s", logger.JsonDebugData(md), logger.JsonDebugData(request))
 
-    callConfig := NewCallConfigDataJSON()
-    callConfigData, err := json.Marshal(callConfig)
-    if err != nil {
-        glog.Error(err)
-        return nil, err
-    }
-    j := string(callConfigData)
-    glog.Info("callConfigData: ", callConfig, ", ", j)
+	callConfig := NewCallConfigDataJSON()
+	callConfigData, err := json.Marshal(callConfig)
+	if err != nil {
+		glog.Error(err)
+		return nil, err
+	}
+	j := string(callConfigData)
+	glog.Info("callConfigData: ", callConfig, ", ", j)
 
-    reply := mtproto.NewTLDataJSON()
-    reply.SetData(j)
+	reply := mtproto.NewTLDataJSON()
+	reply.SetData(j)
 
-    glog.Infof("phone.getCallConfig#55451fa9 - reply %s", logger.JsonDebugData(reply))
-    return reply.To_DataJSON(), nil
+	glog.Infof("phone.getCallConfig#55451fa9 - reply %s", logger.JsonDebugData(reply))
+	return reply.To_DataJSON(), nil
 }

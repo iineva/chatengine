@@ -49,3 +49,5 @@ docker/nbfs/
 docker/mysql/data/
 docker/etcd/data/
 docker/redis/data/
+
+relay/relay

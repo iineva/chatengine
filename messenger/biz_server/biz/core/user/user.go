@@ -18,21 +18,22 @@
 package user
 
 import (
-	"math/rand"
 	"encoding/hex"
-	"github.com/nebula-chat/chatengine/mtproto"
-	"github.com/nebula-chat/chatengine/pkg/util"
-	"github.com/nebula-chat/chatengine/pkg/crypto"
-	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/dal/dataobject"
+	"math/rand"
+
 	"github.com/golang/glog"
+	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/dal/dataobject"
+	"github.com/nebula-chat/chatengine/mtproto"
+	"github.com/nebula-chat/chatengine/pkg/crypto"
+	"github.com/nebula-chat/chatengine/pkg/util"
 )
 
 const (
-	USER_TYPE_REGULAR 	= 0		// 普通用户
-	USER_TYPE_SERVICE 	= 1		// 服务通知(Telegram等)
-	USER_TYPE_BOT 		= 2		// BOT
-	USER_TYPE_DELETED 	= 3		// 已经删除用户
-	USER_TYPE_UNKNOWN 	= 4		// 未知用户
+	USER_TYPE_REGULAR = 0 // 普通用户
+	USER_TYPE_SERVICE = 1 // 服务通知(Telegram等)
+	USER_TYPE_BOT     = 2 // BOT
+	USER_TYPE_DELETED = 3 // 已经删除用户
+	USER_TYPE_UNKNOWN = 4 // 未知用户
 )
 
 type userItem struct {
@@ -56,11 +57,11 @@ func (m *UserModel) makeUserItem(selfId, userId int32) *userItem {
 func (m *UserModel) makeUserItemByUsersDO(selfId int32, usersDO *dataobject.UsersDO) *userItem {
 	u := &userItem{
 		UserModel:       m,
-		UsersDO:		 usersDO,
+		UsersDO:         usersDO,
 		UserPresencesDO: m.dao.UserPresencesDAO.Select(usersDO.Id),
 		// UserContactsDO:  m.dao.UserContactsDAO.SelectUserContact(selfId, usersDO.Id),
-		BotsDO:          m.dao.BotsDAO.Select(usersDO.Id),
-		selfUserId:      selfId,
+		BotsDO:     m.dao.BotsDAO.Select(usersDO.Id),
+		selfUserId: selfId,
 	}
 
 	if selfId != usersDO.Id {
@@ -335,3 +336,90 @@ func (m *UserModel) GetMyUserByPhoneNumber(phoneNumber string) *mtproto.User {
 	return u.ToUser()
 }
 
+type userData struct {
+	*mtproto.TLUser
+}
+
+func (this *userData) ToUser() *mtproto.User {
+	return this.TLUser.To_User()
+}
+
+func (m *UserModel) GetUsersBySelfAndIDList(selfUserId int32, userIdList []int32) (users []*mtproto.User) {
+	if len(userIdList) == 0 {
+		users = []*mtproto.User{}
+	} else {
+		// TODO(@benqi):  需要优化，makeUserDataByDO需要查询用户状态以及获取Mutual和Contact状态信息而导致多次查询
+		userDOList := m.dao.UsersDAO.SelectUsersByIdList(userIdList)
+		users = make([]*mtproto.User, 0, len(userDOList))
+		for i := 0; i < len(userDOList); i++ {
+			user := m.makeUserDataByDO(selfUserId, &userDOList[i])
+			//
+			//// TODO(@benqi): fill bot, photo, about...
+			//user := &mtproto.TLUser{Data2: &mtproto.User_Data{
+			//	Self:          selfUserId == userDO.Id,
+			//	Id:            userDO.Id,
+			//	AccessHash:    userDO.AccessHash,
+			//	FirstName:     userDO.FirstName,
+			//	LastName:      userDO.LastName,
+			//	Username:      userDO.Username,
+			//	Phone:         userDO.Phone,
+			//	Contact:       true,
+			//	MutualContact: true,
+			//}}
+			users = append(users, user.To_User())
+		}
+	}
+	return
+}
+
+func (m *UserModel) makeUserDataByDO(selfId int32, do *dataobject.UsersDO) *userData {
+	if do == nil {
+		return nil
+	} else {
+		var (
+			status                 *mtproto.UserStatus
+			photo                  *mtproto.UserProfilePhoto
+			phone                  string
+			contact, mutualContact bool
+			isSelf                 = selfId == do.Id
+		)
+
+		if isSelf {
+			status = makeUserStatusOnline()
+			contact = true
+			mutualContact = true
+			phone = do.Phone
+		} else {
+			status = m.GetUserStatus3(do.Id)
+			contact, mutualContact = m.contactCallback.GetContactAndMutual(selfId, do.Id)
+			// if contact {
+			phone = do.Phone
+			// }
+		}
+
+		photoId := m.GetDefaultUserPhotoID(do.Id)
+		if photoId == 0 {
+			photo = mtproto.NewTLUserProfilePhotoEmpty().To_UserProfilePhoto()
+		} else {
+			photo = m.photoCallback.GetUserProfilePhoto(photoId)
+			//sizeList, _ := nbfs_client.GetPhotoSizeList(photoId)
+			//photo = photo2.MakeUserProfilePhoto(photoId, sizeList)
+		}
+
+		data := &userData{TLUser: &mtproto.TLUser{Data2: &mtproto.User_Data{
+			Id:            do.Id,
+			Self:          isSelf,
+			Contact:       contact,
+			MutualContact: mutualContact,
+			AccessHash:    do.AccessHash,
+			FirstName:     do.FirstName,
+			LastName:      do.LastName,
+			Username:      m.usernameCallback.GetAccountUsername(do.Id),
+			Phone:         phone,
+			Photo:         photo,
+			Status:        status,
+		}}}
+
+		return data
+	}
+}

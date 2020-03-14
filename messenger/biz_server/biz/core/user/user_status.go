@@ -18,10 +18,11 @@
 package user
 
 import (
+	"time"
+
+	"github.com/golang/glog"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/dal/dataobject"
 	"github.com/nebula-chat/chatengine/mtproto"
-	"time"
-	"github.com/golang/glog"
 )
 
 var (
@@ -79,7 +80,7 @@ func makeUserStatusOnline() *mtproto.UserStatus {
 
 	// 60*60*24*7   week
 	// 60*60*24*30  month
- */
+*/
 func makeUserStatus(do *dataobject.UserPresencesDO, showStatus bool) *mtproto.UserStatus {
 	now := time.Now().Unix()
 
@@ -96,11 +97,11 @@ func makeUserStatus(do *dataobject.UserPresencesDO, showStatus bool) *mtproto.Us
 			return status.To_UserStatus()
 		}
 	} else {
-		if now - do.LastSeenAt >= 60*60*24*30 {
+		if now-do.LastSeenAt >= 60*60*24*30 {
 			return nil
-		} else if now - do.LastSeenAt >= 60*60*24*7 {
+		} else if now-do.LastSeenAt >= 60*60*24*7 {
 			return mtproto.NewTLUserStatusLastMonth().To_UserStatus()
-		} else if now - do.LastSeenAt >= 60*60*24*3 {
+		} else if now-do.LastSeenAt >= 60*60*24*3 {
 			return mtproto.NewTLUserStatusLastWeek().To_UserStatus()
 		} else {
 			return mtproto.NewTLUserStatusRecently().To_UserStatus()
@@ -133,7 +134,7 @@ People can only see you online if you're sharing your last seen status with them
 There is one exception to this: people will be able to see you online for a brief period
 when you send them a message in a one-on-one chat or in a group where you both are members.
 
- */
+*/
 
 func (m *UserModel) GetUserStatus(selfId int32, presencesDO *dataobject.UserPresencesDO, isContact, isBlocked bool) *mtproto.UserStatus {
 	if isBlocked {
@@ -157,7 +158,6 @@ func (m *UserModel) GetUserStatus(selfId int32, presencesDO *dataobject.UserPres
 	//}
 }
 
-
 func (m *UserModel) GetUserStatus2(selfId, userId int32, isContact, isBlocked bool) *mtproto.UserStatus {
 	if isBlocked {
 		return nil
@@ -174,33 +174,37 @@ func (m *UserModel) GetUserStatus2(selfId, userId int32, isContact, isBlocked bo
 	//return makeUserStatus(do, showStatus)
 }
 
-//func (m *UserModel) GetUserStatusList(idList []int32) []*mtproto.UserStatus {
-//	statusList := make([]*mtproto.UserStatus, 0, len(idList))
-//	doList := m.dao.UserPresencesDAO.SelectList(idList)
-//	if len(doList) == len(idList) {
-//		for idx := 0; idx < len(doList); idx++ {
-//			statusList = append(statusList, makeUserStatus(&doList[idx], true))
-//		}
-//	} else {
-//		f := func(id int32) int {
-//			for i := 0; i < len(doList); i++ {
-//				if doList[i].UserId == id {
-//					return i
-//				}
-//			}
-//			return -1
-//		}
-//		for _, id := range idList {
-//			idx := f(id)
-//			if idx == -1 {
-//				statusList = append(statusList, userStatusEmpty)
-//			} else {
-//				statusList = append(statusList, makeUserStatus(&doList[idx], true))
-//			}
-//		}
-//	}
-//	return statusList
-//}
+func (m *UserModel) GetUserStatusList(idList []int32) []*mtproto.UserStatus {
+	statusList := make([]*mtproto.UserStatus, 0, len(idList))
+	doList := m.dao.UserPresencesDAO.SelectList(idList)
+	if len(doList) == len(idList) {
+		for idx := 0; idx < len(doList); idx++ {
+			statusList = append(statusList, makeUserStatus(&doList[idx], true))
+		}
+	} else {
+		f := func(id int32) int {
+			for i := 0; i < len(doList); i++ {
+				if doList[i].UserId == id {
+					return i
+				}
+			}
+			return -1
+		}
+		for _, id := range idList {
+			idx := f(id)
+			if idx == -1 {
+				statusList = append(statusList, userStatusEmpty)
+			} else {
+				statusList = append(statusList, makeUserStatus(&doList[idx], true))
+			}
+		}
+	}
+	return statusList
+}
+
+func (m *UserModel) GetUserStatus3(userId int32) *mtproto.UserStatus {
+	return m.GetUserStatusList([]int32{userId})[0]
+}
 
 func (m *UserModel) UpdateUserStatus(userId int32, lastSeenAt int64) {
 	if userId > 0 {
@@ -218,3 +222,23 @@ func (m *UserModel) DeleteUser(userId int32, reason string) bool {
 	affected := m.dao.UsersDAO.Delete(reason, userId)
 	return affected == 1
 }
+
+// func (m *UserModel) GetUserStatus3(userId int32) *mtproto.UserStatus {
+// 	now := time.Now().Unix()
+// 	do := m.dao.UserPresencesDAO.SelectByUserID(userId)
+// 	if do == nil {
+// 		return mtproto.NewTLUserStatusEmpty().To_UserStatus()
+// 	}
+
+// 	if now <= do.LastSeenAt+5*60 {
+// 		status := &mtproto.TLUserStatusOnline{Data2: &mtproto.UserStatus_Data{
+// 			Expires: int32(do.LastSeenAt + 5*30),
+// 		}}
+// 		return status.To_UserStatus()
+// 	} else {
+// 		status := &mtproto.TLUserStatusOffline{Data2: &mtproto.UserStatus_Data{
+// 			WasOnline: int32(do.LastSeenAt),
+// 		}}
+// 		return status.To_UserStatus()
+// 	}
+// }

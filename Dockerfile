@@ -24,6 +24,8 @@ RUN cd ${TARGET_DIR}/access/auth_key && go build -ldflags='-s -w'
 RUN cd ${TARGET_DIR}/access/session && go build -ldflags='-s -w'
 # build frontend
 RUN cd ${TARGET_DIR}/access/frontend && go build -ldflags='-s -w'
+# build relay
+RUN cd ${TARGET_DIR}/relay && go build -ldflags='-s -w'
 
 
 
@@ -53,6 +55,8 @@ COPY --from=builder ${TARGET_DIR}/access/auth_key/auth_key ./
 COPY --from=builder ${TARGET_DIR}/access/session/session ./
 # build frontend
 COPY --from=builder ${TARGET_DIR}/access/frontend/frontend ./
+# build frontend
+COPY --from=builder ${TARGET_DIR}/relay/relay ./
 
 # copy configs
 COPY --from=builder ${TARGET_DIR}/scripts/config/*.toml ./config-templates/

@@ -18,6 +18,8 @@
 package messages
 
 import (
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/base"
 	"github.com/nebula-chat/chatengine/messenger/biz_server/biz/core"
@@ -26,7 +28,6 @@ import (
 	"github.com/nebula-chat/chatengine/pkg/grpc_util"
 	"github.com/nebula-chat/chatengine/pkg/logger"
 	"golang.org/x/net/context"
-	"time"
 )
 
 // messages.readHistory#b04f2510 peer:InputPeer max_id:int offset:int = messages.AffectedHistory;
@@ -52,6 +53,11 @@ func (s *MessagesServiceImpl) MessagesReadHistoryLayer2(ctx context.Context, req
 
 	pts = int32(core.NextPtsId(md.UserId))
 	ptsCount = 1
+
+	// if peer.PeerType == base.PEER_EMPTY {
+	// 	affected := &mtproto.TLMessagesAffectedHistory{}
+	// 	return affected.To_Messages_AffectedHistory(), nil
+	// }
 
 	updateReadHistoryInbox := &mtproto.TLUpdateReadHistoryInbox{Data2: &mtproto.Update_Data{
 		Peer_39:  peer.ToPeer(),
@@ -105,7 +111,10 @@ func (s *MessagesServiceImpl) MessagesReadHistoryLayer2(ctx context.Context, req
 		}}
 		sync_client.GetSyncClient().PushUpdates(peer.PeerId, updates.To_Updates())
 	} else {
-		chatLogic, _ := s.ChatModel.NewChatLogicById(peer.PeerId)
+		chatLogic, err := s.ChatModel.NewChatLogicById(peer.PeerId)
+		if err != nil {
+			return nil, err
+		}
 		chatParticipants := chatLogic.GetChatParticipantList()
 		for _, participant := range chatParticipants {
 			if participant.GetData2().GetUserId() == md.UserId {

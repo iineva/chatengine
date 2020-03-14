@@ -48,6 +48,7 @@ services:
       - TZ=Asia/Shanghai
       # IMPORTANT: replace to your own host IP.
       - CHATENGINE_HOST=127.0.0.1
+      - RELAY_IP=127.0.0.1
       # options to reset etcd,redis,mysql
       # - ETCD_URL=http://etcd:2379
       # - REDIS_HOST=redis:6379
@@ -55,7 +56,10 @@ services:
     volumes:
       - ${PWD}/docker/nbfs:/opt/nbfs
     ports:
+      # service port
       - 12345:12345
+      # relay port
+      - 50001:50001/udp
     depends_on:
       - mysql
       - etcd
