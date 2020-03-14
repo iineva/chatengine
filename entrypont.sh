@@ -42,5 +42,6 @@ starService messenger biz_server
 starService access auth_key
 starService access session
 starService access frontend
+starService relay relay
 
 tail -f /dev/null

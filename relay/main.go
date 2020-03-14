@@ -249,7 +249,7 @@ func onRelayDataAvailable(conn *net.UDPConn, address *net.UDPAddr, peerTag Packe
 	}
 
 	for _, peer := range table.Peers {
-		if peer.Addr.IP.String() != address.IP.String() && peer.Addr.Port != address.Port {
+		if peer.Addr.IP.String() != address.IP.String() || peer.Addr.Port != address.Port {
 			log.Printf("************** onRelayData - %v", table.Peers)
 			log.Printf("************** onRelayData - %v --> %v", address, peer.Addr)
 			log.Printf("************** onRelayData - send data len: %v", len(buf))
